@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IR Sensor Dashboard</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+    </style>
+</head>
+<body>
+    <h1>IR Sensor Dashboard</h1>
+    <a href="/graph">View Historical Data and Graph</a>
+    <div id="notifications"></div>
+    <h2>Latest Data</h2>
+    <table id="dataTable">
+        <tr>
+            <th>Timestamp</th>
+            <th>Sensor</th>
+            <th>State</th>
+            <th>Duration (ms)</th>
+        </tr>
+    </table>
+
+    <script>
+        const socket = io();
+        const notifications = document.getElementById('notifications');
+        const dataTable = document.getElementById('dataTable');
+
+        socket.on('sensorUpdate', (data) => {
+            // Add notification
+            const notif = document.createElement('p');
+            notif.textContent = `Sensor ${data.sensor}: ${data.state} for ${data.duration}ms`;
+            notifications.prepend(notif);
+
+            // Add to table
+            const row = dataTable.insertRow(1);
+            row.insertCell(0).textContent = data.timestamp;
+            row.insertCell(1).textContent = data.sensor;
+            row.insertCell(2).textContent = data.state;
+            row.insertCell(3).textContent = data.duration;
+
+            // Keep only the latest 15 entries
+            if (dataTable.rows.length > 16) {
+                dataTable.deleteRow(16);
+            }
+        }); 
+
+        socket.on('initialData', (data) => {
+            data.slice(-15).forEach((item) => {
+                const row = dataTable.insertRow(1);
+                row.insertCell(0).textContent = item.timestamp;
+                row.insertCell(1).textContent = item.sensor;
+                row.insertCell(2).textContent = item.state;
+                row.insertCell(3).textContent = item.duration;
+            });
+        });
+    </script>
+</body>
+</html>

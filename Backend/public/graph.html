@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historical Data and Graph</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        #tableContainer { height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>Historical Data and Graph</h1>
+    <div id="tableContainer">
+        <table id="dataTable">
+            <tr>
+                <th>Morning (7 AM - 9 AM)</th>
+                <th>Afternoon (12 PM - 3 PM)</th>
+                <th>Evening (7 PM - 11 PM)</th>
+            </tr>
+        </table>
+    </div>
+    <canvas id="sensorChart" width="400" height="200"></canvas>
+
+    <script>
+        const socket = io();
+        const dataTable = document.getElementById('dataTable');
+        const ctx = document.getElementById('sensorChart').getContext('2d');
+        let chart;
+
+        const updateTable = (data) => {
+            if (dataTable.rows.length > 16) {
+                dataTable.deleteRow(1); // Limit rows in the table
+            }
+            const row = dataTable.insertRow(1); // Insert new row at the top
+            const cell = row.insertCell(data.timeOfDay === 'Morning' ? 0 : data.timeOfDay === 'Afternoon' ? 1 : 2);
+            cell.textContent = `Sensor ${data.sensor}: ${data.state} at ${new Date(data.timestamp).toLocaleTimeString()}`;
+        };
+
+        const updateChart = (data) => {
+            if (!chart) {
+                chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: [], // Timestamps
+                        datasets: [{
+                            label: 'Sensor 0',
+                            data: [], // States (Open/Close)
+                            borderColor: 'rgb(75, 192, 192)',
+                            tension: 0.1
+                        }, {
+                            label: 'Sensor 1',
+                            data: [], // States (Open/Close)
+                            borderColor: 'rgb(255, 99, 132)',
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: {
+                            y: {
+                                type: 'time',
+                                time: {
+                                    unit: 'hour',
+                                    tooltipFormat: 'HH:mm',
+                                    displayFormats: {
+                                        hour: 'HH:mm'
+                                    }
+                                },
+                                min: '07:00',
+                                max: '23:00',
+                                title: {
+                                    display: true,
+                                    text: 'Time of Day'
+                                }
+                            },
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Sensor State (Open=1, Close=0)'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            const dataset = chart.data.datasets[data.sensor];
+            dataset.data.push({ x: new Date(data.timestamp).toLocaleTimeString(), y: data.state === 'OPEN' ? 1 : 0 });
+            
+            // Limit to last 50 entries
+            if (dataset.data.length > 50) dataset.data.shift();
+
+            // Add timestamps to labels
+            if (chart.data.labels.length <= dataset.data.length) {
+                chart.data.labels.push(new Date(data.timestamp).toLocaleTimeString());
+                if (chart.data.labels.length > 50) chart.data.labels.shift();
+            }
+
+            chart.update();
+        };
+
+        // Listen to sensor updates
+        socket.on('sensorUpdate', (data) => {
+            updateTable(data); // Update the table
+            updateChart(data); // Update the chart
+        });
+
+        // On initial load, get historical data and populate
+        socket.on('initialData', (data) => {
+            data.slice(-15).forEach(updateTable); // Add latest data to table
+            data.forEach(updateChart); // Add data to chart
+        });
+    </script>
+</body>
+</html>

@@ -19,19 +19,6 @@ __pycache__/
 # Environment variables
 .env
 
-# Miscellaneous
-.DS_Store
-*.log
-*.sqlite
-*.egg-info/
-dist/
-build/
-*.egg
-*.venv/
-*.venv/
-.venv/
-*.pkl
-
 # IDE and editor files
 .vscode/
 .idea/
