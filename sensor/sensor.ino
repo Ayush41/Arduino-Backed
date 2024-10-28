@@ -26,5 +26,5 @@ void loop() {
     lastStateChangeTime = currentTime;
   }
 
-  delay(100);  // Adjust this delay as needed
+  delay(100);
 }
