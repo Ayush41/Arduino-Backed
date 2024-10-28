@@ -1,5 +1,5 @@
 #define IR_SENSOR_PIN 2  // Change this to the appropriate pin number
-#define THRESHOLD 500    // Adjust this value based on your IR sensor's characteristics
+#define THRESHOLD 500    
 
 unsigned long lastStateChangeTime = 0;
 bool isClose = false;
